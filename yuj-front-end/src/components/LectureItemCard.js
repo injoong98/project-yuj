@@ -51,7 +51,7 @@ const LectureItemCard = (props) => {
 
   return (
     <div>
-      <div className="card w-72 bg-base-100 shadow-xl min-h-full ">
+      <div className="card w-72 bg-base-100 shadow-xl min-h-full" style={{height: '22rem'}}>
         <figure className="relative">
           {/* changeStudioLectureDetailItem 메소드를 통해 DetailPage로 이동 시 띄워줄 강의 저장 */}
           <Link
@@ -69,7 +69,9 @@ const LectureItemCard = (props) => {
               </div>
               {complete()}
             </div>
+            <div className="max-h-48">
             <img src={`${process.env.REACT_APP_IMAGE_URL}/${lecture.images ? lecture.images[0].filePath : thumbnail}`} alt="Card Image" />
+            </div>
           </Link>
         </figure>
         <div className="card-body">

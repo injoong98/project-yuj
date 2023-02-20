@@ -3,6 +3,7 @@ package com.yuj.lecture.repository;
 import com.yuj.lecture.domain.Lecture;
 import com.yuj.lecture.domain.UserLecture;
 
+import com.yuj.lecture.dto.response.LectureResponseDTO;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -14,6 +15,8 @@ import java.util.Optional;
 
 @Repository
 public interface LectureRepository extends JpaRepository<Lecture, Long> {
+
+    Lecture findByLectureId(Long lectureId);
 
     Optional<List<Lecture>> findByUser_UserIdAndIsActiveTrue(Long userId);
     @Query(value = "select l from Lecture l join l.user u where u.userId = :userId and l.endDate >= :threshold order by l.registDate desc")
@@ -44,6 +47,4 @@ public interface LectureRepository extends JpaRepository<Lecture, Long> {
     @Query(value = "select l from Lecture l join l.yoga y on y.yogaId = :yogaId where l.name like %:name% and l.endDate < :threshold order by l.registDate desc")
     List<Lecture> findLectureEndByYoga(@Param("name") String name, @Param("yogaId") Long yogaId, @Param("threshold") LocalDate threshold);
     
-    @Query(value = "select ul from UserLecture ul where ul.review is not null and ul.state=true and ul.lecture.lectureId in (select distinct (l.lectureId) from Lecture l join l.user u where u.userId = :userId) order by ul.reviewUpdateDate desc")
-    List<UserLecture> getReviewsByUserId(@Param("userId") Long userId);
 }
