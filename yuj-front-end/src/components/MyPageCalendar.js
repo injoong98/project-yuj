@@ -12,6 +12,7 @@ const MyPageCalendar = (props) => {
 
     return (
         <div className="App max-w-full">
+            {console.log('events는 : ', lectureEvents)}
             <FullCalendar
                 defaultView="dayGridMonth"
                 plugins={[dayGridPlugin]}
@@ -23,7 +24,7 @@ const MyPageCalendar = (props) => {
                         borderColor: color[index % Object.keys(color).length],
                         url: "/studio",
                         state: {
-                            lectureId: event.lectureId,
+                            teacherId : event.userId,
                         },
                     }
                 })}

@@ -129,8 +129,6 @@ const MyPageDashBoard = () => {
             lecture.closeTime = calcEventCloseTime;
             lecture.timeDiff = timeDiff;
             console.log("foreach lecture res: ", lecture)
-            events['lectureId']=lecture.lectureId;
-            events[`userId`]=lecture.userId;
         }
         setLectureEvents(events);
     }
@@ -160,6 +158,8 @@ const MyPageDashBoard = () => {
                     calcEvents.push({
                         title: name,
                         date: startDate.format("YYYY-MM-DD"),
+                        userId : userLecture.userId,
+                        lectureId : userLecture.lectureId,
                     })
 
                     if (!calcEventCloseTime) {

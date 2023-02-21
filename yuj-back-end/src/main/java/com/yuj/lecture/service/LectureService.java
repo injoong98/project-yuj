@@ -7,7 +7,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
+import com.yuj.exception.CUserLectureNotFoundException;
 import com.yuj.lectureimage.dto.LectureImageDto;
+import com.yuj.lectureimage.service.LectureImageService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -56,7 +58,8 @@ public class LectureService {
     private final LectureImageRepository lectureImageRepository;
     private final YogaRepository yogaRepository;
     private final UserLectureRepository userLectureRepository;
-
+    private final LectureImageService lectureImageService;
+    private final LectureScheduleService lectureScheduleService;
     private final UserRepository userRepository;    //  강의 등록 때 pk로 강사 찾아야 함
 
     private final FileHandler fileHandler;
@@ -119,6 +122,65 @@ public class LectureService {
         }
     }
 
+    @Transactional
+    public Long updateLecture(Long lectureId, List<MultipartFile> files, LectureVO lectureVO, List<LectureScheduleRegistDTO> lsrDtos) {
+        Long ret = -1L;
+
+        //  변경된 요가 찾아내기
+        Yoga yoga = yogaRepository.findById(lectureVO.getYogaId()).orElseThrow(CYogaNotFoundException::new);
+
+        //  강의 찾아내기
+        Lecture lecture = lectureRepository.findById(lectureId).orElseThrow(CLectureNotFoundException::new);
+        lecture.setYoga(yoga);  //  요가 변경
+        lecture.setName(lectureVO.getName());   //  이름 변경
+        lecture.setDescription(lectureVO.getDescription()); //  상세정보 변경
+        lecture.setStartDate(lectureVO.getStartDate());
+        lecture.setEndDate(lectureVO.getEndDate());
+        lecture.setLimitStudents(lectureVO.getLimitStudents());
+        lecture.setFee(lectureVO.getFee());
+        lecture.setTotalCount(lectureVO.getTotalCount());
+
+        try {
+            List<ImageFile> imageFileList = fileHandler.parseLectureImageInfo(files);
+
+            ret = lectureRepository.save(lecture).getLectureId();
+
+            //  기존 파일들 전부 제거
+            lectureImageService.deleteLectureImagesByLectureId(lectureId);
+
+            //  새로운 파일이 존재하면 처리
+            if(!imageFileList.isEmpty()) {
+                for(ImageFile imageFile : imageFileList) {
+                    //  파일을 DB에 저장
+                    imageFile.setLecture(lecture);
+                    lecture.addLectureImage(lectureImageRepository.save(imageFile));
+                }
+            }
+
+            //  기존 일정들 전부 제거
+            lectureScheduleService.deleteLectureScheduleByLectureId(lectureId);
+
+            //  새로운 일정이 존재하면 처리
+            if(!lsrDtos.isEmpty()) {
+                for(LectureScheduleRegistDTO dto : lsrDtos) {
+                    //  일정을 DB에 저장
+                    LectureSchedule lectureSchedule = dto.toEntity(lecture);
+                    log.info("lectureSchedule : " + lectureSchedule);
+                    lectureScheduleRepository.save(lectureSchedule);
+                }
+            }
+        } catch(Exception e) {
+            e.printStackTrace();
+        } finally {
+            return ret;
+        }
+    }
+
+    @Transactional
+    public Long deleteLectureByLectureId(Long lectureId) {
+        lectureRepository.deleteById(lectureId);
+        return lectureId;
+    }
 
     public LectureResponseDTO getLectureById(Long lectureId) throws Exception {
         Lecture lecture = lectureRepository.findById(lectureId).orElseThrow(() -> new Exception("수업이 존재하지 않습니다."));
@@ -158,6 +220,7 @@ public class LectureService {
         return returnList;
     }
 
+    @Transactional
     public LectureResponseDTO updateLectureActive(Long lectureId, long userId, Boolean isActive) throws Exception {
         Lecture lecture = lectureRepository.findById(lectureId).orElseThrow(() -> new Exception("강의가 존재하지 않습니다."));
 
@@ -221,7 +284,7 @@ public class LectureService {
     public List<LectureResponseDTO> getLectureByUserLecture_userId(long userId) {
         List<LectureResponseDTO> result = new ArrayList<>();
 
-        List<UserLecture> list = userLectureRepository.findByUser_UserId(userId);
+        List<UserLecture> list = userLectureRepository.findByUser_UserId(userId).orElseThrow(CUserLectureNotFoundException::new);
 
         for (UserLecture userLecture : list) {
             Long lectureId = userLecture.getLecture().getLectureId();
