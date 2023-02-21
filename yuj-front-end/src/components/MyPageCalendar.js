@@ -24,7 +24,7 @@ const MyPageCalendar = (props) => {
                         borderColor: color[index % Object.keys(color).length],
                         url: "/studio",
                         state: {
-                            teacherId : event.userId,
+                            teacherId: event.userId,
                         },
                     }
                 })}

@@ -129,8 +129,60 @@ public class UserLectureService {
 
     // 유저 수강 후기 리스트 
     public List<LectureReviewResponseDTO> getReviewsByUserId(Long userId) {
-        List<LectureReviewResponseDTO> result = new ArrayList<>();
-        List<UserLecture> list = userLectureRepository.getReviewsByUserId(userId);
+		List<LectureReviewResponseDTO> result = new ArrayList<>();
+		List<UserLecture> list = userLectureRepository.getReviewsByUserId(userId);
+		
+		for (UserLecture userLecture : list) {
+			result.add(entityToReviewDTO(userLecture));
+		}
+		return result;
+	}
+    
+    // 유저 수강 후기 등록
+    public void registReview(LectureReviewRequestDTO userRequestDto) {
+        UserLecture selectedUserLecture = userLectureRepository.findByUser_UserIdAndLecture_LectureId(userRequestDto.getUserId(), userRequestDto.getLectureId()).orElseThrow(CUserLectureNotFoundException::new);
+
+        // 수강신청 내역에 리뷰관련 내용 추가하기
+        selectedUserLecture.setReview(userRequestDto.getReview());
+        selectedUserLecture.setReviewUpdateDate(LocalDateTime.now());
+		
+		// 후기에 따른 강사 댓글 개수, 점수 합계 update
+		User teacher = userRepository.findById(userRequestDto.getTeacherId()).orElseThrow(CUserNotFoundException::new);
+		
+		teacher.setRatingCnt(teacher.getRatingCnt() + 1);
+		teacher.setRatingSum(teacher.getRatingSum() + userRequestDto.getScore());
+	}
+	
+    // 유저 수강 후기 삭제
+    public void deleteReview(Long userLectureId) throws Exception {
+    	UserLecture userLecture = userLectureRepository.findById(userLectureId).orElseThrow(CUserLectureNotFoundException::new);
+        User teacher = userRepository.findById(userLecture.getLecture().getUser().getId()).orElseThrow(CUserNotFoundException::new);
+
+        //강사의 평점의 총점, 카운트 감소시키기
+        teacher.setRatingCnt(teacher.getRatingCnt()-1);
+        teacher.setRatingSum(teacher.getRatingSum()-userLecture.getScore());
+
+        //수강신청 내역에서 리뷰관련 내용 지우기
+        userLecture.setReview(null);
+        userLecture.setReviewUpdateDate(LocalDateTime.now());
+        userLecture.setScore(0);
+    }
+    
+    private LectureReviewResponseDTO entityToReviewDTO(UserLecture userLecture) {
+    	User user = userLecture.getUser();
+    	Lecture lecture = userLecture.getLecture();
+    	
+    	return LectureReviewResponseDTO.builder()
+    			.reviewId(userLecture.getUserLectureId())
+    			.userId(user.getUserId())
+    			.userName(user.getNickname())
+    			.date(userLecture.getRegistDate())
+    			.rating(userLecture.getScore())
+    			.lectureName(lecture.getName())
+    			.review(userLecture.getReview())
+    			.profileImage(user.getProfileImagePath())
+    			.build();
+    	}
 
         for (UserLecture userLecture : list) {
             result.add(entityToReviewDTO(userLecture));
